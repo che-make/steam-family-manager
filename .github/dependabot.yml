@@ -1,0 +1,31 @@
+version: 2
+updates:
+  # Mantener las dependencias Maven actualizadas
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "10:00"
+      timezone: "Europe/Madrid"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    pull-request-branch-name:
+      separator: "-"
+    allow:
+      - dependency-type: "direct"
+    # Configuración para grupos de dependencias
+    groups:
+      test-dependencies:
+        dependency-type: "development"
+        patterns:
+          - "junit*"
+          - "mockito*"
+          - "org.assertj:*"
+        update-types:
+          - "minor"
+          - "patch"
+    target-branch: "develop"

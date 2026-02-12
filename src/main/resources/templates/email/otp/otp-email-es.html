@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restablecimiento de Contraseña</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f9f9f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 100%;
+            padding: 20px;
+            background-color: #f9f9f9;
+            display: flex;
+            justify-content: center;
+        }
+
+        .email-content {
+            max-width: 400px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .header {
+            background-color: #0056b3;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 22px;
+        }
+
+        .body-content {
+            padding: 20px;
+        }
+
+        .body-content p {
+            margin-bottom: 15px;
+        }
+
+        .body-content .username {
+            color: #555;
+            font-weight: normal;
+        }
+
+        .body-content .instruction {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .body-content .reset-otp {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 12px 0;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 16px;
+            margin: 20px 0;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 15px;
+            background-color: #f1f1f1;
+            font-size: 12px;
+            color: #777;
+        }
+
+        @media only screen and (max-width: 400px) {
+            .email-content {
+                width: 100%;
+                box-shadow: none;
+            }
+
+            .body-content {
+                padding: 15px;
+            }
+
+            .header {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .footer {
+                padding: 10px;
+            }
+
+            .reset-otp {
+                padding: 10px 0;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="email-content">
+        <div class="header">
+            <h1>Restablecer Contraseña</h1>
+        </div>
+        <div class="body-content">
+            <p>Estimado(a) <span class="username" th:text="${name}">Usuario</span>,</p>
+            <p>Hemos recibido una solicitud para restablecer tu contraseña. Para reestablecerla usa el siguiente codigo OTP.</p>
+            <p class="instruction"><strong>Este código OTP expirará en <span th:text="${urlExpiryHours}">1</span> hora.</strong></p>
+            <p class="reset-otp"> Your OTP: <span th:text="${OTP}"></span></p>
+            <p class="instruction">Si no solicitaste un restablecimiento de contraseña, por favor ignora este correo.</p>
+        </div>
+        <div class="footer">
+            <p>Si tienes alguna pregunta, contacta a nuestro soporte en info@metamedicsvr.com.</p>
+            <p>© 2025 MetamedicsVR. Todos los derechos reservados.</p>
+        </div>
+    </div>
+</div>
+</body>
+</html>
