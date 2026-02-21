@@ -33,5 +33,6 @@ build/
 .vscode/
 
 ### Others ###
+.env
 docker-compose.yml
 application-dev.properties
