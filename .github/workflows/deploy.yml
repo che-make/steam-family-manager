@@ -1,0 +1,104 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Notify Discord - Deploy Started
+        if: vars.DISCORD_NOTIFICATIONS == 'true'
+        run: |
+          curl -s -H "Content-Type: application/json" \
+            -d "{\"embeds\":[{\"title\":\"🚀 Deploy iniciado\",\"description\":\"Commit: \`${GITHUB_SHA::7}\`\nBy: ${{ github.actor }}\",\"color\":3447003}]}" \
+            "${{ secrets.DISCORD_WEBHOOK_URL }}"
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -e
+            cd /opt/steam-family-manager
+
+            echo "=== Pulling latest code ==="
+            git pull origin prod
+
+            echo "=== Writing .env ==="
+            cat > .env << 'ENVBLOCK'
+            DB_HOST=db
+            DB_PORT=3306
+            DB_USER=root
+            DB_PASS=${{ secrets.DB_PASS }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            STEAM_API_KEY=${{ secrets.STEAM_API_KEY }}
+            DISCORD_WEBHOOK_URL=${{ secrets.DISCORD_WEBHOOK_URL }}
+            SPRING_PROFILES_ACTIVE=docker
+            ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
+            ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
+            ENVBLOCK
+            chmod 600 .env
+
+            echo "=== Stopping containers ==="
+            docker compose -f docker-compose.prod.yml down
+
+            echo "=== Building and starting ==="
+            docker compose -f docker-compose.prod.yml up -d --build
+
+            echo "=== Health check (internal) ==="
+            for i in $(seq 1 30); do
+              if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+                echo "Backend is healthy!"
+                curl -s http://localhost:8080/actuator/health
+                break
+              fi
+              if [ "$i" -eq 30 ]; then
+                echo "ERROR: Backend did not become healthy in time"
+                docker compose -f docker-compose.prod.yml logs backend --tail=50
+                exit 1
+              fi
+              echo "  Waiting... ($i/30)"
+              sleep 5
+            done
+
+            echo "=== Cleaning old Docker images ==="
+            docker image prune -f
+
+      - name: Health Check (external)
+        run: |
+          echo "Waiting 10s for external availability..."
+          sleep 10
+          for i in $(seq 1 5); do
+            STATUS=$(curl -sf -o /dev/null -w "%{http_code}" https://chemake.dev/actuator/health || true)
+            if [ "$STATUS" = "200" ]; then
+              echo "External health check passed!"
+              curl -s https://chemake.dev/actuator/health
+              exit 0
+            fi
+            echo "  Attempt $i/5 - Status: $STATUS"
+            sleep 5
+          done
+          echo "WARNING: External health check did not return 200"
+          exit 1
+
+      - name: Notify Discord - Deploy Success
+        if: success() && vars.DISCORD_NOTIFICATIONS == 'true'
+        run: |
+          curl -s -H "Content-Type: application/json" \
+            -d "{\"embeds\":[{\"title\":\"✅ Deploy exitoso\",\"description\":\"Commit: \`${GITHUB_SHA::7}\`\nBy: ${{ github.actor }}\n[Ver en GitHub](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\",\"color\":3066993}]}" \
+            "${{ secrets.DISCORD_WEBHOOK_URL }}"
+
+      - name: Notify Discord - Deploy Failed
+        if: failure() && vars.DISCORD_NOTIFICATIONS == 'true'
+        run: |
+          curl -s -H "Content-Type: application/json" \
+            -d "{\"embeds\":[{\"title\":\"❌ Deploy fallido\",\"description\":\"Commit: \`${GITHUB_SHA::7}\`\nBy: ${{ github.actor }}\n[Ver logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\",\"color\":15158332}]}" \
+            "${{ secrets.DISCORD_WEBHOOK_URL }}"
